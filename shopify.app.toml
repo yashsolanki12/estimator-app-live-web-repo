@@ -2,7 +2,7 @@
 
 client_id = "b51576c4c044c73979da098a5c55a6aa"
 name = "ECS Delivery Estimator"
-application_url = "https://example.com"
+application_url = "https://estimator-app-live-web-repo.onrender.com"
 embedded = true
 
 [build]
@@ -11,7 +11,9 @@ include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-07"
-
+ [[webhooks.subscriptions]]
+ uri = "https://estimator-app-live-web-repo.onrender.com/api/webhooks"
+ topics = [ "app/uninstalled" ]
  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
 [access_scopes]
@@ -19,4 +21,9 @@ api_version = "2026-07"
 scopes = "read_products,read_themes,write_themes,write_products,read_locales,read_markets,read_orders,read_shipping,write_script_tags,read_inventory"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://estimator-app-live-web-repo.onrender.comauth/callback",
+  "https://estimator-app-live-web-repo.onrender.com/auth/shopify/callback",
+  "https://estimator-app-live-web-repo.onrender.com/api/auth/callback"
+]
+
