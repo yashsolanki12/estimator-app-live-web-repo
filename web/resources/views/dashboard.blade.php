@@ -216,45 +216,9 @@
 	    host: "{{request()->query('host')}}"
 	  });
 
-	  var ContextualSaveBar = actions.ContextualSaveBar;
-	  var TitleBar = actions.TitleBar;
-	  var Button = actions.Button;
-	  var Toast = actions.Toast;
-	  var Modal = actions.Modal;
-	  var ResourcePicker = actions.ResourcePicker;
 	  var Redirect = actions.Redirect;
 	  var redirect = Redirect.create(app);
 
-	  var contactusbutton = Button.create(app, { label: 'Contact Us' });
-	  var settingsbutton = Button.create(app, { label: 'Settings' });
-	  var managebutton = Button.create(app, { label: 'Estimator' });
-	  var dashboardbutton = Button.create(app, { label: 'Dashboard' });
-	  var usagereportbutton = Button.create(app, { label: 'Usage Report' });
-
-	  contactusbutton.subscribe(Button.Action.CLICK, function() {
-	    app.dispatch(Redirect.toApp({path: '/contact_us'}));
-	  });
-
-	  settingsbutton.subscribe(Button.Action.CLICK, function() {
-	    app.dispatch(Redirect.toApp({path: '/settings'}));
-	  });
-
-	  managebutton.subscribe(Button.Action.CLICK, function() {
-	    app.dispatch(Redirect.toApp({path: '/timer'}));
-	  });
-
-	  usagereportbutton.subscribe(Button.Action.CLICK, function() {
-	    app.dispatch(Redirect.toApp({path: '/usage_report'}));
-	  });
-
-	  var titleBarOptions = {
-	    title: 'Dashboard',
-	    buttons: {
-	      primary: dashboardbutton,
-	      secondary: [managebutton,settingsbutton,usagereportbutton,contactusbutton],
-	    },
-	  };
-	  var myTitleBar = TitleBar.create(app, titleBarOptions);
 	</script>
 
 	<script type="text/javascript">
