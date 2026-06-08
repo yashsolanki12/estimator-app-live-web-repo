@@ -1,4 +1,4 @@
-/web/node_modules
+/web/frontend/node_modules
 /web/public/hot
 /web/public/storage
 /web/storage/*.key
