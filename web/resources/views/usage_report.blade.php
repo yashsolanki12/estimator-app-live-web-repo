@@ -73,41 +73,8 @@
 		    host: "{{ request()->query('host') }}"
 		});
 
-		var TitleBar = actions.TitleBar;
-		var Button = actions.Button;
 		var Redirect = actions.Redirect;
 		var redirect = Redirect.create(app);
-
-		var settingsbutton = Button.create(app, { label: 'Settings' });
-		var managebutton = Button.create(app, { label: 'Estimator' });
-		var dashboardbutton = Button.create(app, { label: 'Dashboard' });
-		var contactusbutton = Button.create(app, { label: 'Contact Us' });
-		var usagereportbutton = Button.create(app, { label: 'Usage Report' });
-
-		settingsbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/settings'}));
-		});
-
-		managebutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/timer'}));
-		});
-
-		dashboardbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/'}));
-		});
-
-		contactusbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/contactus'}));
-		});
-
-		var titleBarOptions = {
-			title: 'Usage Report',
-			buttons: {
-				primary: usagereportbutton,
-				secondary: [dashboardbutton, managebutton, settingsbutton, contactusbutton],
-			},
-		};
-		var myTitleBar = TitleBar.create(app, titleBarOptions);
 	} catch (error) {
 		console.error('Usage Report App Bridge setup failed.', error);
 	}
