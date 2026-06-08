@@ -153,7 +153,7 @@
 
   const buildMessage = (s, ct, dt) => {
     const textAlign = s.text_align || 'center';
-    return `<div class="delivery-estimator-message-app" style="text-align:${textAlign}">` +
+    return `<div class="delivery-estimator-message-app" style="text-align:${textAlign}; padding: 5px 4px;">` +
       String(s.custom_message || 'Order within the next [countdown] for delivery by [deliverydate].')
       .replace(/\[countdown\]/g, `<span class="delivery-estimator-countdown-app" id="delivery-countdown-timer-app">${ct}</span>`)
       .replace(/\[deliverydate\]/g, `<span class="delivery-estimator-Deliverydate-app">${escapeHtml(dt)}</span>`)
