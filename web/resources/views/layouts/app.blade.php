@@ -7,13 +7,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Shopify App') }}</title>
 
-    <!-- Use the below unpkg script for timer blade file calendar not shown and for distribution check comment that both script temporary then uncomment 
-         again after distribution point checked.
-      -->
-    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-    <script src="https://unpkg.com/@shopify/app-bridge-utils@3"></script>
    <meta name="shopify-api-key" content="{{ config('services.shopify.api_key') }}" />
    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+   <!-- App Bridge v3 (unpkg) for legacy TitleBar / Redirect actions
+       Use the below unpkg script for timer blade file calendar not shown and for distribution check comment that both script temporary then uncomment 
+        again after distribution point checked.      
+   -->
+   <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+   <script src="https://unpkg.com/@shopify/app-bridge-utils@3"></script>
 
     @yield('styles')
 </head>

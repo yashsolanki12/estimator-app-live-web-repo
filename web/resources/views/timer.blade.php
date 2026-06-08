@@ -784,40 +784,8 @@
 		});
 
 		  var ContextualSaveBar = actions.ContextualSaveBar;
-		  var TitleBar = actions.TitleBar;
-		  var Button = actions.Button;
-		  var Toast = actions.Toast;
-		  var Modal = actions.Modal;
-		  var ResourcePicker = actions.ResourcePicker;
 		  var Redirect = actions.Redirect;
 		  var redirect = Redirect.create(app);
-
-		  var learnmorebutton = Button.create(app, { label: 'Learn More' });
-		  var settingsbutton = Button.create(app, { label: 'Settings' });
-		  var dashboardbutton = Button.create(app, { label: 'Dashboard' });
-		  var managebutton = Button.create(app, { label: 'Estimator' });
-		  var contactusbutton = Button.create(app, { label: 'Contact Us' });
-		  var usagereportbutton = Button.create(app, { label: 'Usage Report' });
-
-		  learnmorebutton.subscribe(Button.Action.CLICK, function() {
-		    redirect.dispatch(Redirect.Action.REMOTE, { url: '#', newContext: true, });
-		  });
-
-		  settingsbutton.subscribe(Button.Action.CLICK, function() {
-		    app.dispatch(Redirect.toApp({path: '/settings'}));
-		  });
-
-		  dashboardbutton.subscribe(Button.Action.CLICK, function() {
-		    app.dispatch(Redirect.toApp({path: '/'}));
-		  });
-
-		  contactusbutton.subscribe(Button.Action.CLICK, function() {
-		    app.dispatch(Redirect.toApp({path: '/contactus'}));
-		  });
-
-		  usagereportbutton.subscribe(Button.Action.CLICK, function() {
-		    app.dispatch(Redirect.toApp({path: '/usage_report'}));
-		  });
 
 		  const options = {
 	      saveAction: {
@@ -834,11 +802,9 @@
 
 	    contextualSaveBar.subscribe(ContextualSaveBar.Action.DISCARD, function () {
 	      location.reload();
-	      // window.location.href = "/home/index?shop="
 	      contextualSaveBar.dispatch(ContextualSaveBar.Action.HIDE);
 	    });
 	    contextualSaveBar.subscribe(ContextualSaveBar.Action.SAVE, function () {
-	      // console.log($('#setting_ds_exclude_tags').val());
 	      $('.main-setting-form').trigger('submit');
 	      contextualSaveBar.dispatch(ContextualSaveBar.Action.HIDE);
 	    });
@@ -852,14 +818,6 @@
 	      });
 	    });
 
-	  	var titleBarOptions = {
-		    title: 'Estimator',
-		    buttons: {
-		      primary: managebutton,
-		      secondary: [dashboardbutton,settingsbutton, usagereportbutton,contactusbutton],
-		    },
-	  	};
-	  	var myTitleBar = TitleBar.create(app, titleBarOptions);
 
 		$(document).ready(function() {
 			$('#hide_on_collection').select2();

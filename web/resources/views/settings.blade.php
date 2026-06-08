@@ -111,84 +111,12 @@
 			    host: "{{request()->query('host')}}"
 			});
 
-			  var ContextualSaveBar = actions.ContextualSaveBar;
-			  var TitleBar = actions.TitleBar;
-			  var Button = actions.Button;
-			  var Toast = actions.Toast;
-			  var Modal = actions.Modal;
-			  var ResourcePicker = actions.ResourcePicker;
 			  var Redirect = actions.Redirect;
 			  redirect = Redirect.create(app);
-
-		  var dashboardbutton = Button.create(app, { label: 'Dashboard' });
-		  var managebutton = Button.create(app, { label: 'Estimator' });
-		  var settingsbutton = Button.create(app, { label: 'Settings' });
-		  var contactusbutton = Button.create(app, { label: 'Contact Us' });
-		  var usagereportbutton = Button.create(app, { label: 'Usage Report' });
-
-		  	dashboardbutton.subscribe(Button.Action.CLICK, function() {
-		    	app.dispatch(Redirect.toApp({path: '/'}));
-		  	});
-
-		   	managebutton.subscribe(Button.Action.CLICK, function() {
-		   		app.dispatch(Redirect.toApp({path: '/timer'}));
-		  	});
-
-		   	contactusbutton.subscribe(Button.Action.CLICK, function() {
-			    app.dispatch(Redirect.toApp({path: '/contactus'}));
-			});
-
-		   	usagereportbutton.subscribe(Button.Action.CLICK, function() {
-			    app.dispatch(Redirect.toApp({path: '/usage_report'}));
-			  });
-
-		  // Contextual Save Bar - COMMENTED OUT
-		  /*
-		  const options = {
-	      saveAction: {
-	        disabled: false,
-	        loading: false,
-	      },
-	      discardAction: {
-	        disabled: false,
-	        loading: false,
-	        discardConfirmationModal: false,
-	      },
-	    };
-	    const contextualSaveBar = ContextualSaveBar.create(app, options);
-
-	    contextualSaveBar.subscribe(ContextualSaveBar.Action.DISCARD, function () {
-	      location.reload();
-	      // window.location.href = "/home/index?shop="
-	      contextualSaveBar.dispatch(ContextualSaveBar.Action.HIDE);
-	    });
-	    contextualSaveBar.subscribe(ContextualSaveBar.Action.SAVE, function () {
-	      // console.log($('#setting_ds_exclude_tags').val());
-	      $('.main-translations-setting-form').trigger('submit');
-	      contextualSaveBar.dispatch(ContextualSaveBar.Action.HIDE);
-	    });
-
-	    document.addEventListener('DOMContentLoaded', () => {
-	      $('#translationssettingform').on('change', function() {
-	        contextualSaveBar.dispatch(ContextualSaveBar.Action.SHOW);
-	      });
-	      $("input,textarea").keyup(function(){
-	        contextualSaveBar.dispatch(ContextualSaveBar.Action.SHOW);
-	      });
-	    });
-	    */
-
-	  	var titleBarOptions = {
-		    title: 'Settings',
-		    buttons: {
-		      primary: settingsbutton,
-		      secondary: [dashboardbutton,managebutton,usagereportbutton,contactusbutton],
-		    },
-	  	};
-	  	var myTitleBar = TitleBar.create(app, titleBarOptions);
 	  	} catch (error) {
 	  		console.error('Settings App Bridge setup failed.', error);
 	  	}
+
 
 	  	$(document).ready(function () {
 		  	$('.main-translations-setting-form').off('submit.settings').on('submit.settings', function(e) {

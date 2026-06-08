@@ -69,49 +69,8 @@
 		    host: "{{ request()->query('host') }}"
 		});
 
-		var ContextualSaveBar = actions.ContextualSaveBar;
-		var TitleBar = actions.TitleBar;
-		var Button = actions.Button;
-		var Toast = actions.Toast;
-		var Modal = actions.Modal;
-		var ResourcePicker = actions.ResourcePicker;
 		var Redirect = actions.Redirect;
 		var redirect = Redirect.create(app);
-
-		var settingsbutton = Button.create(app, { label: 'Settings' });
-		var managebutton = Button.create(app, { label: 'Estimator' });
-		var dashboardbutton = Button.create(app, { label: 'Dashboard' });
-		var contactusbutton = Button.create(app, { label: 'Contact Us' });
-		var usagereportbutton = Button.create(app, { label: 'Usage Report' });
-
-		settingsbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/settings'}));
-		});
-
-		managebutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/timer'}));
-		});
-
-		dashboardbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/'}));
-		});
-
-		contactusbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/contactus'}));
-		});
-
-		usagereportbutton.subscribe(Button.Action.CLICK, function() {
-			app.dispatch(Redirect.toApp({path: '/usage_report'}));
-		});
-
-		var titleBarOptions = {
-			title: 'Product View Report',
-			buttons: {
-				primary: usagereportbutton,
-				secondary: [dashboardbutton, managebutton, settingsbutton, contactusbutton],
-			},
-		};
-		var myTitleBar = TitleBar.create(app, titleBarOptions);
 
 		document.getElementById('back_button').addEventListener('click', function () {
 			if (typeof app !== 'undefined' && typeof Redirect !== 'undefined') {
