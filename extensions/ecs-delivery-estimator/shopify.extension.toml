@@ -1,0 +1,14 @@
+name = "ECS Delivery Estimator"
+type = "theme"
+uid = "e5773327-3f48-385d-5e3f-e1b4981cd85ab4303287"
+
+[blocks]
+  [blocks.app-embed]
+  name = "App Embed Block"
+  target = "body"
+  file = "blocks/app_embed.liquid"
+
+  [blocks.theme-block]
+  name = "Theme Block"
+  target = "section"
+  file = "blocks/theme_block.liquid"

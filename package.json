@@ -1,0 +1,24 @@
+{
+    "name": "shopify-app-template-php",
+    "version": "1.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "shopify": "shopify",
+        "build": "shopify app build",
+        "dev": "shopify app dev",
+        "artisan": "cd web && php artisan serve --host=127.0.0.1 --port=8000",
+        "push": "shopify app push",
+        "view": "shopify livereload --watch web/resources/views/dashboard.blade.php",
+        "generate": "shopify app generate",
+        "deploy": "shopify app deploy",
+        "info": "shopify app info"
+    },
+    "dependencies": {
+        "@shopify/app": "^3.0.0",
+        "@shopify/cli": "^3.0.0",
+        "axios": "^1.16.0",
+        "laravel-mix": "^6.0.49",
+        "lodash": "^4.18.1",
+        "postcss": "^8.5.14"
+    }
+}

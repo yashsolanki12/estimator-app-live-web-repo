@@ -1,0 +1,6 @@
+/* Media queries */
+@media (max-width: 768px) {
+    .card-main-title {
+        font-size: 1.25rem;
+    }
+}

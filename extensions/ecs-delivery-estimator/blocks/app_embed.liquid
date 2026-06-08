@@ -1,0 +1,441 @@
+{% if block.settings.enabled %}
+<div id="delivery-estimator-app-embed" class="delivery-estimator-anchor-app" data-embed="app" data-shop="{{ shop.permanent_domain }}" data-product-id="{{ product.id }}" data-product-handle="{{ product.handle }}"></div>
+
+<style>
+  .delivery-estimator-anchor-app { width: 100%; }
+  .delivery-estimator-shell-app {
+    box-sizing: border-box; width: 100%; max-width: 100%;
+    font-size: 15px; line-height: 1.5; overflow-wrap: anywhere;
+  }
+  .delivery-estimator-message-app { display: block; }
+  .delivery-estimator-countdown-app { font-weight: 700; }
+  .delivery-estimator-Deliverydate-app { font-weight: 700; }
+  .delivery-estimator-loader-app { padding: 12px 0; font-size: 14px; opacity: 0.8; display: flex; height: 100%; justify-content: center; align-items: center; }
+
+  .delivery-estimator-visual-app { overflow: visible; }
+  .estimated_arrival_text_app { font-weight: 600; margin-bottom: 4px; }
+
+  /* ── Horizontal timeline ── */
+  .de-timeline-wrapper-app {
+    position: relative;
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  .de-timeline-steps-app {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    width: 100%;
+    gap: 16px;
+  }
+
+  /* The horizontal line that passes THROUGH the icons — drawn as ::before */
+  .de-timeline-steps-app::before {
+    content: '';
+    position: absolute;
+    top: 21px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--de-line-color, #f78d8d);
+    z-index: 0;
+  }
+
+  .de-timeline-step-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
+  }
+  .de-timeline-step-app:first-child  { align-items: flex-start; }
+  .de-timeline-step-app:nth-child(2) { align-items: center; }
+  .de-timeline-step-app:last-child   { align-items: flex-end; }
+
+  .de-timeline-icon-app {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 2;
+    position: relative;
+  }
+
+  .de-timeline-content-app {
+    border-radius: 5px;
+    padding: 10px 12px;
+    margin-top: 14px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Arrow pointing up from content box to icon */
+  .de-timeline-arrow-app {
+    width: 0; height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid;
+    position: absolute;
+    top: -10px;
+  }
+  .de-timeline-step-app:first-child  .de-timeline-arrow-app { left: 12px; }
+  .de-timeline-step-app:nth-child(2) .de-timeline-arrow-app { left: 50%; transform: translateX(-50%); }
+  .de-timeline-step-app:last-child   .de-timeline-arrow-app { right: 12px; left: auto; }
+
+  .de-timeline-step-app:first-child  .de-timeline-content-app { text-align: left; }
+  .de-timeline-step-app:nth-child(2) .de-timeline-content-app { text-align: center; }
+  .de-timeline-step-app:last-child   .de-timeline-content-app { text-align: right; }
+
+  .de-timeline-title-app { font-weight: 700; font-size: 15px; display: block; }
+  .de-timeline-subtitle-app { font-size: 13px; opacity: 0.84; display: block; margin-top: 2px; }
+
+  /* ── Responsive: stack vertically on narrow containers ── */
+  @media (max-width: 480px) {
+    .de-timeline-steps-app::before {
+      top: 0; bottom: 0; left: 21px; right: auto;
+      width: 3px; height: 100%;
+    }
+    .de-timeline-steps-app {
+      flex-direction: column;
+      gap: 18px;
+    }
+    .de-timeline-step-app {
+      flex-direction: row;
+      align-items: flex-start !important;
+      gap: 12px;
+    }
+    .de-timeline-content-app {
+      margin-top: 0;
+      flex: 1;
+    }
+    .de-timeline-arrow-app { display: none; }
+    .de-timeline-step-app .de-timeline-content-app { text-align: left !important; }
+
+    .delivery-estimator-loader-app {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      min-height: 24px;
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #000;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 768px) and (min-width: 481px) {
+    .delivery-estimator-shell-app { padding: 12px 14px; font-size: 14px; }
+    .de-timeline-content-app { padding: 8px 10px; }
+    .de-timeline-title-app { font-size: 13px; }
+    .de-timeline-subtitle-app { font-size: 12px; }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('delivery-estimator-app-embed');
+  if (!root) return;
+
+  const baseUrl = 'http://127.0.0.1:8000'; // https://delivery-app-test-php.onrender.com , http://127.0.0.1:8000
+  const shopName = root.dataset.shop || '';
+  const productId = root.dataset.productId || '';
+  const productHandle = root.dataset.productHandle || '';
+  const escapeHtml = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+  const buildMessage = (s, ct, dt) => {
+    const textAlign = s.text_align || 'center';
+    return `<div class="delivery-estimator-message-app" style="text-align:${textAlign}">` +
+      String(s.custom_message || 'Order within the next [countdown] for delivery by [deliverydate].')
+      .replace(/\[countdown\]/g, `<span class="delivery-estimator-countdown-app" id="delivery-countdown-timer-app">${ct}</span>`)
+      .replace(/\[deliverydate\]/g, `<span class="delivery-estimator-Deliverydate-app">${escapeHtml(dt)}</span>`)
+      + `</div>`;
+  };
+
+  const findCartForm = (textPosition) => {
+    // text_position = 0 (below add to cart) 1 (above add to cart)
+    if (textPosition == 1) {
+      const el = document.querySelector('.product-form__submit');
+      if (el) return el;
+    } 
+    else {
+      const el = document.querySelector('.shopify-payment-button__button.shopify-payment-button__button--unbranded');
+      const addToCartBtn = document.querySelector(".product-form__buttons .product-form__submit");
+      if (addToCartBtn) return addToCartBtn;
+      {% comment %} if(e1) return e1; {% endcomment %} // In store front it show below buy it now button
+    }
+    const sels = ["form[action*='/cart/add']","form[action*='cart/add']","form[action*='/cart']",'form.product-form','form[data-product-form]','form[data-product-id]','#ProductInfo--template form','.product-form--regular'];
+    for (const sel of sels) { try { const el = document.querySelector(sel); if (el) return el; } catch(e){} }
+    return null;
+  };
+
+  const insertTimer = (html, s, isVisual) => {
+    const w = document.createElement('div');
+    w.className = 'delivery-estimator-shell-app';
+    if (isVisual) {
+      w.style.cssText = [
+        s.visual_margin_top ? `margin-top:${s.visual_margin_top}px` : '',
+        s.visual_margin_bottom ? `margin-bottom:${s.visual_margin_bottom}px` : '',
+        s.visual_margin_left ? `margin-left:${s.visual_margin_left}px` : '',
+        s.visual_margin_right ? `margin-right:${s.visual_margin_right}px` : ''
+      ].filter(Boolean).join(';');
+    } else {
+      w.style.cssText = [
+        s.text_font_size ? `font-size:${s.text_font_size}px` : '',
+        s.text_align ? `text-align:${s.text_align}` : '',
+        s.text_background_color ? `background-color:${s.text_background_color}` : '',
+        s.text_font_color ? `color:${s.text_font_color}` : '',
+        s.text_border_size ? `border-width:${s.text_border_size}px` : '',
+        s.text_border_style ? `border-style:${s.text_border_style}` : '',
+        s.text_border_color ? `border-color:${s.text_border_color}` : '',
+        s.text_border_radius ? `border-radius:${s.text_border_radius}px` : '',
+        s.text_margin_top ? `margin-top:${s.text_margin_top}px` : '',
+        s.text_margin_bottom ? `margin-bottom:${s.text_margin_bottom}px` : '',
+        s.text_margin_left ? `margin-left:${s.text_margin_left}px` : '',
+        s.text_margin_right ? `margin-right:${s.text_margin_right}px` : ''
+      ].filter(Boolean).join(';');
+    }
+    w.innerHTML = html;
+    if (!isVisual) {
+      if (s.text_countdown_color) { const c = w.querySelector('#delivery-countdown-timer-app'); if (c) c.style.color = s.text_countdown_color; }
+      if (s.text_deliverydate_color) { const d = w.querySelector('.delivery-estimator-Deliverydate-app'); if (d) d.style.color = s.text_deliverydate_color; }
+    }
+    return w;
+  };
+
+  const startCountdown = (cutoffTimeStr, settings) => {
+    const cutoff = new Date(cutoffTimeStr).getTime();
+    const el = document.getElementById('delivery-countdown-timer-app');
+    if (!el || isNaN(cutoff)) return;
+    const showSeconds = settings.enable_second == 1 || settings.enable_second === '1';
+    const showDays = settings.show_timer_past_cutoff == 1 || settings.show_timer_past_cutoff === '1';
+    const format = settings.countdown_format || 'format1';
+    const textDays = settings.text_days || '';
+    const textHours = settings.text_hours || '';
+    const textMins = settings.text_minutes || '';
+    const textSecs = settings.text_seconds || '';
+    const pad = (n) => String(n).padStart(2, '0');
+
+    const tick = () => {
+      const diff = cutoff - Date.now();
+      let d, h, m, s;
+      if (diff <= 0) { d = 0; h = 0; m = 0; s = 0; }
+      else { d = Math.floor(diff / 86400000); h = Math.floor((diff % 86400000) / 3600000); m = Math.floor((diff % 3600000) / 60000); s = Math.floor((diff % 60000) / 1000); }
+
+      if (format === 'format2') {
+        const ds = (showDays || d > 0) ? `${d}D ` : '';
+        el.textContent = ds + `${pad(h)}H ${pad(m)}M` + (showSeconds ? ` ${pad(s)}S` : '');
+      } else if (format === 'format3') {
+        const ds = (showDays || d > 0) ? `${d} Day(s) ` : '';
+        el.textContent = ds + `${pad(h)}:${pad(m)}` + (showSeconds ? `:${pad(s)}` : '');
+      } else if (format === 'format4') {
+        const ds = (showDays || d > 0) ? `${d} ${textDays}, ` : '';
+        const mins = textMins ? `${pad(m)} ${textMins}` : `${pad(m)} minutes`;
+        const secs = textSecs ? `${pad(s)} ${textSecs}` : `${pad(s)} seconds`;
+        el.textContent = ds + `${h} ${textHours}, ` + mins + (showSeconds ? `, ${secs}` : '');
+      } else if (format === 'format5') {
+        const ds = (showDays || d > 0) ? `${d}D, ` : '';
+        el.textContent = ds + `${pad(h)}H, ${pad(m)}M` + (showSeconds ? `, ${pad(s)}S` : '');
+      } else {
+        const ds = (showDays || d > 0) ? `${d} ${textDays} ` : '';
+        const mins = textMins ? `${pad(m)} ${textMins}` : `${pad(m)} minutes`;
+        const secs = textSecs ? `${pad(s)} ${textSecs}` : `${pad(s)} seconds`;
+        el.textContent = ds + `${pad(h)} ${textHours} ` + mins + (showSeconds ? ` ${secs}` : '');
+      }
+    };
+    tick(); setInterval(tick, 1000);
+  };
+
+  const calendarSvg = `<svg width="24" height="24" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M436 160H12c-6.627 0-12-5.373-12-12v-36c0-26.51 21.49-48 48-48h48V12c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v52h128V12c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v52h48c26.51 0 48 21.49 48 48v36c0 6.627-5.373 12-12 12zM12 192h424c6.627 0 12 5.373 12 12v260c0 26.51-21.49 48-48 48H48c-26.51 0-48-21.49-48-48V204c0-6.627 5.373-12 12-12zm333.296 95.947l-28.169-28.398c-4.667-4.705-12.265-4.736-16.97-.068L194.12 364.665l-45.98-46.352c-4.667-4.705-12.266-4.736-16.971-.068l-28.397 28.17c-4.705 4.667-4.736 12.265-.068 16.97l82.601 83.269c4.667 4.705 12.265 4.736 16.97.068l142.953-141.805c4.705-4.667 4.736-12.265.068-16.97z"/></svg>`;
+  const truckSvg = `<svg width="24" height="24" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M624 352h-16V243.9c0-12.7-5.1-24.9-14.1-33.9L494 110.1c-9-9-21.2-14.1-33.9-14.1H416V48c0-26.5-21.5-48-48-48H112C85.5 0 64 21.5 64 48v48H8c-4.4 0-8 3.6-8 8v16c0 4.4 3.6 8 8 8h272c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H40c-4.4 0-8 3.6-8 8v16c0 4.4 3.6 8 8 8h208c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H8c-4.4 0-8 3.6-8 8v16c0 4.4 3.6 8 8 8h208c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H64v128c0 53 43 96 96 96s96-43 96-96h128c0 53 43 96 96 96s96-43 96-96h48c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zM160 464c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48zm320 0c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48zm80-208H416V144h44.1l99.9 99.9V256z"/></svg>`;
+  const boxSvg = `<svg width="24" height="24" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M425.7 256c-16.9 0-32.8-9-41.4-23.4L320 126l-64.2 106.6c-8.7 14.5-24.6 23.5-41.5 23.5-4.5 0-9-.6-13.3-1.9L64 215v178c0 14.7 10 27.5 24.2 31l216.2 54.1c10.2 2.5 20.9 2.5 31 0L551.8 424c14.2-3.6 24.2-16.4 24.2-31V215l-137 39.1c-4.3 1.3-8.8 1.9-13.3 1.9zm212.6-112.2L586.8 41c-3.1-6.2-9.8-9.8-16.7-8.9L320 64l91.7 152.1c3.8 6.3 11.4 9.3 18.5 7.3l197.9-56.5c9.9-2.9 14.7-13.9 10.2-23.1zM53.2 41L1.7 143.8c-4.6 9.2.3 20.2 10.1 23l197.9 56.5c7.1 2 14.7-1 18.5-7.3L320 64 69.8 32.1c-6.9-.8-13.5 2.7-16.6 8.9z"/></svg>`;
+  
+  const removeLoader = () => {
+      const loader = document.getElementById('de-temp-loader');
+      if (loader) loader.remove();
+  };
+
+  const getAllSettings = () => {
+     const response = fetch(`${baseUrl}/get_settings?shop=${encodeURIComponent(shopName)}&product_id=${encodeURIComponent(productId)}&product_handle=${encodeURIComponent(productHandle)}`, { method: 'GET', credentials: 'omit' });
+      return response
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(data => {
+        return data
+      })   
+  } 
+
+
+ const getDataForTimer = (data) => {
+    // text_position = 0 (below add to cart) 1 (above add to cart)
+   
+    const buyNowBtn = document.querySelector('.shopify-payment-button__button.shopify-payment-button__button--unbranded');
+    const addToCartBtn = document.querySelector(".product-form__buttons .product-form__submit");
+    // Show loader above the add-to-cart button while fetching
+    if (addToCartBtn && addToCartBtn.parentNode) {
+      const tempLoader = document.createElement('div');
+      tempLoader.id = 'de-temp-loader';
+      tempLoader.className = 'delivery-estimator-loader-app';
+      tempLoader.innerHTML = `<img src="{{ 'loading-spinner.svg' | asset_url }}" height="35px" width="35px"/>`;
+      // Insert loader AFTER the Buy Now button
+      const nextSibling = addToCartBtn;
+      const nextElementSibling = addToCartBtn.nextElementSibling
+      if (data && data.text_position == 1) {
+        addToCartBtn.parentNode.insertBefore(tempLoader,nextSibling);
+      } else if (data && data.text_position == 0) {
+        addToCartBtn.after(tempLoader);
+      }
+    }
+    setTimeout(removeLoader,400)
+  } 
+
+
+  (async() => {
+    const response = await getAllSettings()
+    try {
+      removeLoader();
+
+      if (response && response.status === true && response.settings && response.settings.status === false && response.settings.reason === 'limit_exceeded') {
+        const showToast = (message) => {
+          const toast = document.createElement('div');
+          toast.textContent = message;
+          toast.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #f36060; color: white; padding: 12px 20px; border-radius: 6px; z-index: 2147483647; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transition: opacity 0.3s ease-in-out; pointer-events: none;';
+          document.body.appendChild(toast);
+          requestAnimationFrame(() => { toast.style.opacity = '1'; });
+          setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+          }, 4000);
+        };
+
+        if (response.settings.message) {
+          showToast(response.settings.message || 'Your plan limit reached out, please upgrade your plan.');
+          root.remove();
+          return;
+        }
+      }
+
+      if (!response || response.status !== true || !response.settings || response.settings.status === false) {
+        root.remove();
+        return;
+      }
+      if(response.status === true) {
+        getDataForTimer(response.settings)
+      }
+             
+      const s = response.settings;
+
+      const tbt = s.enable_tbtimer == 1 || s.enable_tbtimer === '1' || s.enable_tbtimer === true;
+      const vt = s.enable_vtimer == 1 || s.enable_vtimer === '1' || s.enable_vtimer === true;
+      if (!tbt && !vt) { root.remove(); return; }
+  
+      document.querySelectorAll('#delivery_estimator_wrapper, #visual_estimator_wrapper').forEach(el => el.remove());
+
+      let ct = s.cutofftime || '00:00:00';
+      if (ct.includes(' ')) ct = ct.split(' ').slice(1).join(' ');
+      const dt = s.text_delivery_date || s.visual_delivery_date_text || '';
+
+      const containers = [];
+      const cartForm = findCartForm(s.text_position);
+
+      if (tbt) containers.push(insertTimer(`<div class="delivery-estimator-message-app">${buildMessage(s, ct, dt)}</div>`, s, false));
+      if (vt) {
+            const ic = s.visual_icon_color || '#7744c9';
+            const ac = s.visual_accent_color || '#f78d8d';
+            const vfc = s.visual_font_color || '#82b0fa';
+            const vbc = s.visual_background_color || '#174f4c';
+            const vtc = s.visual_text_color || '#ffffff';
+            containers.push(insertTimer(`<div class="delivery-estimator-visual-app">
+              <div class="estimated_arrival_text_app" style="color:${vfc}"><span style="font-size: 25px;">${escapeHtml(s.visual_delivery_date_text||'Delivery Date')}</span><span style="margin-left:8px; font-size: 16px;">${escapeHtml(s.visual_estimated_arrival||'Estimated Arrival')}</span></div>
+              <div class="de-timeline-wrapper-app">
+                <div class="de-timeline-steps-app" style="--de-line-color:${ac}">
+                  <div class="de-timeline-step-app">
+                    <div class="de-timeline-icon-app" style="background:${ac};color:${ic}">${calendarSvg}</div>
+                    <div class="de-timeline-content-app" style="background:${vbc};color:${vtc}">
+                      <div class="de-timeline-arrow-app" style="border-bottom-color:${vbc}"></div>
+                      <span class="de-timeline-title-app">${escapeHtml(s.visual_order_date_text||'Order Date')}</span>
+                      <span class="de-timeline-subtitle-app">${escapeHtml(s.visual_order_placed||'Pending')}</span>
+                    </div>
+                  </div>
+                  <div class="de-timeline-step-app">
+                    <div class="de-timeline-icon-app" style="background:${ac};color:${ic}">${truckSvg}</div>
+                    <div class="de-timeline-content-app" style="background:${vbc};color:${vtc}">
+                      <div class="de-timeline-arrow-app" style="border-bottom-color:${vbc}"></div>
+                      <span class="de-timeline-title-app">${escapeHtml(s.visual_dispatches_date_text||'Dispatches')}</span>
+                      <span class="de-timeline-subtitle-app">${escapeHtml(s.visual_order_dispatches||'Will be dispatched')}</span>
+                    </div>
+                  </div>
+                  <div class="de-timeline-step-app">
+                    <div class="de-timeline-icon-app" style="background:${ac};color:${ic}">${boxSvg}</div>
+                    <div class="de-timeline-content-app" style="background:${vbc};color:${vtc}">
+                      <div class="de-timeline-arrow-app" style="border-bottom-color:${vbc}"></div>
+                      <span class="de-timeline-title-app">${escapeHtml(s.visual_delivered||'Delivered')}</span>
+                      <span class="de-timeline-subtitle-app">${escapeHtml(s.visual_delivery_date_text||'Delivery Date')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>`, s, true));
+          }
+
+          root.remove();
+
+          if (cartForm && cartForm.parentNode) {
+            const wrapper = document.createElement('div');
+            for (const c of containers) wrapper.appendChild(c);
+            if (s.text_position == 1) {
+              cartForm.parentNode.insertBefore(wrapper, cartForm);
+            } else {
+              const ref = cartForm.nextSibling;
+              if (ref) cartForm.parentNode.insertBefore(wrapper, ref);
+              else cartForm.parentNode.appendChild(wrapper);
+            }
+          } else {
+            root.remove();
+            return;
+          }
+        
+          if (tbt && ct) startCountdown(s.cutofftime, s);
+              // Log this view for plan limit tracking
+          try {
+            fetch(`${baseUrl}/store_view_logs`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'omit',
+              body: JSON.stringify({
+                shop_name: shopName,
+                product_id: productId || null,
+                product_name: productHandle || null,
+                page: window.location.pathname || null
+              })
+            }).catch(() => {}); // fire and forget
+          } catch(logErr) {}
+      } catch(e)  {
+          // Remove loader on error too
+        removeLoader();
+        console.error('[delivery]', e);
+        root.remove();
+      }  
+  })()
+
+  setTimeout(getDataForTimer, 400);
+})();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "ECS Delivery Estimator",
+  "target": "body",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Enable Timer", "default": true }
+  ]
+}
+{% endschema %}

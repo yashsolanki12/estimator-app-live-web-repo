@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Lib;
+
+use App\Exceptions\ShopifyProductCreatorException;
+use Shopify\Auth\Session;
+
+class ProductCreator
+{
+    public static function call(Session $session, int $count)
+    {
+        $client = new \Shopify\Clients\Rest($session->getShop(), $session->getAccessToken());
+
+        for ($i = 0; $i < $count; $i++) {
+            $response = $client->post('products', [
+                'product' => [
+                    'title' => self::randomTitle(),
+                    'variants' => [
+                        [
+                            'price' => (string) self::randomPrice(),
+                        ]
+                    ],
+                    'status' => 'draft',
+                ]
+            ]);
+
+            $body = $response->getDecodedBody();
+
+            if ($response->getStatusCode() !== 201) {
+                throw new ShopifyProductCreatorException(json_encode($body), $response);
+            }
+        }
+    }
+
+    private static function randomTitle()
+    {
+        $adjective = self::ADJECTIVES[mt_rand(0, count(self::ADJECTIVES) - 1)];
+        $noun = self::NOUNS[mt_rand(0, count(self::NOUNS) - 1)];
+
+        return "$adjective $noun";
+    }
+
+    private static function randomPrice()
+    {
+        return (100.0 + mt_rand(0, 1000)) / 100;
+    }
+
+    private const ADJECTIVES = [
+        "autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark",
+        "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter",
+        "patient", "twilight", "dawn", "crimson", "wispy", "weathered", "blue",
+        "billowing", "broken", "cold", "damp", "falling", "frosty", "green", "long",
+    ];
+
+    private const NOUNS = [
+        "waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning",
+        "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter",
+        "forest", "hill", "cloud", "meadow", "sun", "glade", "bird", "brook",
+        "butterfly", "bush", "dew", "dust", "field", "fire", "flower",
+    ];
+}

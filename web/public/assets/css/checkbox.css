@@ -1,0 +1,18 @@
+.form-check {margin-bottom: 0.5rem;}
+.form-switch .form-check-label{cursor: pointer;}
+.form-check-input {cursor: pointer;}
+.form-check-input:checked {background-color: #a7c638;border-color: #a7c638;}
+.form-switch .form-check-input:focus {border-color: #bfbfbf;box-shadow: 0 0 0 0.25rem rgb(253 69 0 / 0%);background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e");}
+.form-check-input:checked:focus {background-color: #a7c638;border-color: #a7c638;background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");}
+.perfect-datetimepicker tbody td.today {color: #a7c638;}
+.perfect-datetimepicker tbody td.selected {border: 1px solid #a7c638; background-color: #a7c638; color: #fff;}
+.perfect-datetimepicker table td {height: 30px;}
+@media(max-width: 767px) {
+	.form_check_timer_visibility {width: 75px;}
+}
+@media(max-width: 575px) {
+	.form_check_timer_visibility {margin-right: 0.5rem;}
+}
+
+
+ 
