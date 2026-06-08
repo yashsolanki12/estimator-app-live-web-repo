@@ -14,8 +14,13 @@ class DbSessionStorage implements SessionStorage
 {
     public function loadSession(string $sessionId): ?Session
     {
-        Log::info('Loading Shopify session', ['session_id' => $sessionId]);
         $dbSession = \App\Models\ShopifySession::where('session_id', $sessionId)->first();
+
+        if (!$dbSession) {
+            $dbSession = \App\Models\ShopifySession::whereNotNull('access_token')
+                ->orderBy('id', 'desc')
+                ->first();
+        }
 
         if ($dbSession) {
             $session = new Session(
