@@ -22,7 +22,7 @@ scopes = "read_products,read_themes,write_themes,write_products,read_locales,rea
 
 [auth]
 redirect_urls = [
-  "https://estimator-app-live-web-repo.onrender.comauth/callback",
+  "https://estimator-app-live-web-repo.onrender.com/auth/callback",
   "https://estimator-app-live-web-repo.onrender.com/auth/shopify/callback",
   "https://estimator-app-live-web-repo.onrender.com/api/auth/callback"
 ]
