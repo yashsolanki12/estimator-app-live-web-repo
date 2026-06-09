@@ -19,6 +19,7 @@ use Shopify\ApiVersion;
 use Shopify\Webhooks\Registry;
 use Shopify\Webhooks\Topics;
 use Illuminate\Support\Str;
+use Shopify\Auth\Session;
 
 class AppServiceProvider extends ServiceProvider
 {

@@ -8,6 +8,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Shopify\Auth\AccessTokenOnlineUserInfo;
 use Shopify\Auth\OAuth;
 use Shopify\Auth\Session;
@@ -41,26 +42,71 @@ class EnsureShopifySession
             return AuthRedirection::redirect($request);
         }
 
-        $shopRecord = null;
+        $authorizationHeader = $request->header('Authorization');
+        $bearerToken = null;
 
-        if ($shop) {
+        if ($authorizationHeader && preg_match('/^Bearer\s+([^\s]+)$/', $authorizationHeader, $bearerMatches)) {
+            $bearerToken = $bearerMatches[1];
+        } elseif ($request->query('id_token')) {
+            $bearerToken = $request->query('id_token');
+        }
+
+        if ($bearerToken && Context::$IS_EMBEDDED_APP) {
+            try {
+                $authHeaders = ['Authorization' => 'Bearer ' . $bearerToken];
+                $session = Utils::loadCurrentSession(
+                    $authHeaders,
+                    $request->cookies->all(),
+                    true
+                );
+
+                if ($session && $session->getAccessToken()) {
+                    $dbSession = ShopifySession::where('session_id', $session->getId())->first();
+                    if ($dbSession && !$dbSession->session_token) {
+                        $dbSession->session_token = $bearerToken;
+                        $dbSession->save();
+                    } elseif (!$dbSession) {
+                        Log::warning('Session not found for session_token save', ['session_id' => $session->getId()]);
+                    }
+
+                    $request->attributes->set('shopifySession', $session);
+
+                    $user = User::firstOrCreate(
+                        ['name' => $session->getShop()],
+                        [
+                            'email' => 'shop@' . $session->getShop(),
+                            'password' => bcrypt(uniqid()),
+                        ]
+                    );
+                    Auth::login($user);
+
+                    return $next($request);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Session token validation failed: ' . $e->getMessage());
+            }
+        }
+
+        if (!$shop) {
+            return AuthRedirection::redirect($request);
+        }
+
+        $shopRecord = ShopifySession::where('shop', $shop)
+            ->where('is_online', 0)
+            ->whereNotNull('access_token')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$shopRecord) {
             $shopRecord = ShopifySession::where('shop', $shop)
-                ->where('is_online', 0)
+                ->where('is_online', 1)
                 ->whereNotNull('access_token')
+                ->where(function ($query) {
+                    $query->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', now());
+                })
                 ->orderBy('id', 'desc')
                 ->first();
-
-            if (!$shopRecord) {
-                $shopRecord = ShopifySession::where('shop', $shop)
-                    ->where('is_online', 1)
-                    ->whereNotNull('access_token')
-                    ->where(function ($query) {
-                        $query->whereNull('expires_at')
-                            ->orWhere('expires_at', '>', now());
-                    })
-                    ->orderBy('id', 'desc')
-                    ->first();
-            }
         }
 
         if (!$shopRecord && !$isExitingIframe) {
@@ -112,7 +158,7 @@ class EnsureShopifySession
             $user = User::firstOrCreate(
                 ['name' => $shopRecord->shop],
                 [
-                    'email' => "shop@{$shopRecord->shop}",
+                    'email' => 'shop@' . $shopRecord->shop,
                     'password' => bcrypt(uniqid()),
                 ]
             );
