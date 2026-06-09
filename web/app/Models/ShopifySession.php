@@ -16,6 +16,7 @@ class ShopifySession extends Model
         'state',
         'scope',
         'access_token',
+        'session_token',
         'expires_at',
         'user_id',
         'user_first_name',

@@ -51,6 +51,9 @@ class DbSessionStorage implements SessionStorage
                 );
                 $session->setOnlineAccessInfo($onlineAccessInfo);
             }
+            if ($dbSession->session_token && method_exists($session, 'setSessionToken')) {
+                $session->setSessionToken($dbSession->session_token);
+            }
             return $session;
         }
         return null;
@@ -63,14 +66,12 @@ class DbSessionStorage implements SessionStorage
             'shop' => $session->getShop(),
             'is_online' => $session->isOnline(),
             'has_access_token' => (bool) $session->getAccessToken(),
+            'has_session_token' => method_exists($session, 'getSessionToken') ? (bool) $session->getSessionToken() : false,
         ]);
         
-        // Try to find existing session by session_id first
         $dbSession = \App\Models\ShopifySession::where('session_id', $session->getId())->first();
         if (!$dbSession) {
-            // Only reuse shop record if it has a valid access token
             $dbSession = \App\Models\ShopifySession::where('shop', $session->getShop())
-                ->whereNotNull('access_token')
                 ->orderBy('id', 'desc')
                 ->first();
         }
@@ -82,8 +83,14 @@ class DbSessionStorage implements SessionStorage
         $dbSession->state = $session->getState();
         $dbSession->is_online = $session->isOnline();
         $dbSession->access_token = $session->getAccessToken();
+        if (method_exists($session, 'getSessionToken')) {
+            $dbSession->session_token = $session->getSessionToken();
+        }
         $dbSession->expires_at = $session->getExpires() ? $session->getExpires()->format('Y-m-d H:i:s') : null;
         $dbSession->scope = $session->getScope();
+        if ($session->getAccessToken()) {
+            $dbSession->access_token = $session->getAccessToken();
+        }
 
         if ($session->getOnlineAccessInfo()) {
             $dbSession->user_id = (string)$session->getOnlineAccessInfo()->getId();

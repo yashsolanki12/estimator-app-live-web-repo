@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('state')->nullable();
             $table->text('scope')->nullable();
             $table->text('access_token')->nullable();
+            $table->string('session_token', 191)->nullable();
             $table->dateTime('expires_at')->nullable();
             $table->bigInteger('user_id')->nullable();
             $table->string('user_first_name')->nullable();
