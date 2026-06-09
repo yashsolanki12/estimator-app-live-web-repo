@@ -13,6 +13,9 @@
        Use the below unpkg script for timer blade file calendar not shown and for distribution check comment that both script temporary then uncomment 
         again after distribution point checked.      
    -->
+    <!-- <meta name="shopify-debug" content="web-vitals" />
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script> -->
+
    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
    <script src="https://unpkg.com/@shopify/app-bridge-utils@3"></script>
 

@@ -126,21 +126,27 @@ Route::get('/api/auth/callback', function (Request $request) {
             $request->cookie(),
             $request->query(),
             ['App\Lib\CookieHandler', 'saveShopifyCookie'],
-        ); 
+        );
         Log::info('Shopify OAuth callback succeeded', [
             'shop' => $session->getShop(),
             'session_id' => $session->getId(),
             'is_online' => $session->isOnline(),
             'has_token' => (bool) $session->getAccessToken(),
+            'has_session_token' => method_exists($session, 'getSessionToken') ? (bool) $session->getSessionToken() : false,
         ]);
 
-        // 3. REGISTER WEBHOOKS (Crucial for Uninstall tracking)
-        \Shopify\Webhooks\Registry::register(
-            '/webhooks',
-            \Shopify\Webhooks\Topics::APP_UNINSTALLED,
-            $session->getShop(),
-            $session->getAccessToken()
-        );
+        if (method_exists($session, 'getSessionToken') && $session->getSessionToken()) {
+            Log::info('Session token received', ['session_token' => $session->getSessionToken()]);
+        }
+
+        if ($session->getAccessToken()) {
+            \Shopify\Webhooks\Registry::register(
+                '/webhooks',
+                \Shopify\Webhooks\Topics::APP_UNINSTALLED,
+                $session->getShop(),
+                $session->getAccessToken()
+            );
+        }
 
     } catch (\Exception $e) {
         Log::error("Auth Callback Error: " . $e->getMessage());
