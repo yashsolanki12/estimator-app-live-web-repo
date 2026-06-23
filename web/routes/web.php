@@ -127,6 +127,11 @@ Route::get('/api/auth/callback', function (Request $request) {
             $request->query(),
             ['App\Lib\CookieHandler', 'saveShopifyCookie'],
         );
+
+        if ($session && Context::$SESSION_STORAGE) {
+            Context::$SESSION_STORAGE->storeSession($session);
+        }
+
         Log::info('Shopify OAuth callback succeeded', [
             'shop' => $session->getShop(),
             'session_id' => $session->getId(),

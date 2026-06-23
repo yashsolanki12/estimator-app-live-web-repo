@@ -42,11 +42,58 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var redirectUri = "<?= htmlspecialchars($redirectUri, ENT_QUOTES, 'UTF-8') ?>";
-            
+
             if (redirectUri) {
                 window.open(redirectUri, '_top');
             }
         });
+
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        const host = getQueryParam('host');
+        const shop = getQueryParam('shop');
+
+        if (host && window.top === window.self) {
+            const redirectUri = new URL(window.location.href);
+            redirectUri.searchParams.set('embedded', '1');
+            window.location.href = redirectUri.toString();
+        }
+
+        if (host && window.Shopify && window.Shopify.AppBridge) {
+            const appBridgeConfig = {
+                apiKey: "{{ config('services.shopify.api_key') }}",
+                host: host,
+                forceRedirect: true,
+            };
+
+            const AppBridge = window.Shopify.AppBridge;
+            const app = AppBridge.create(appBridgeConfig);
+            const actions = AppBridge.actions;
+            const Redirect = actions.Redirect;
+
+            document.querySelectorAll('a[href]').forEach(function(link) {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('http') && !href.startsWith('//')) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        Redirect.create(app, { path: href }).dispatch();
+                    });
+                }
+            });
+
+            document.querySelectorAll('form[action]').forEach(function(form) {
+                const action = form.getAttribute('action');
+                if (action && !action.startsWith('http') && !action.startsWith('//')) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        Redirect.create(app, { path: action, method: 'POST' }).dispatch();
+                    });
+                }
+            });
+        }
     </script>
     @yield('scripts')
     <script>
