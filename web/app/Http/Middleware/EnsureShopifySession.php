@@ -61,6 +61,10 @@ class EnsureShopifySession
                 );
 
                 if ($session && $session->getAccessToken()) {
+                    if (Context::$SESSION_STORAGE) {
+                        Context::$SESSION_STORAGE->storeSession($session);
+                    }
+
                     $dbSession = ShopifySession::where('session_id', $session->getId())->first();
                     if ($dbSession && !$dbSession->session_token) {
                         $dbSession->session_token = $bearerToken;
