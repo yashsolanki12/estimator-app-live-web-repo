@@ -113,7 +113,7 @@ class DbSessionStorage implements SessionStorage
         } catch (Exception $err) {
             Log::error("Failed to save session to database: " . $err->getMessage());
             return false;
-        }
+    }
     }
 
     public function deleteSession(string $sessionId): bool
