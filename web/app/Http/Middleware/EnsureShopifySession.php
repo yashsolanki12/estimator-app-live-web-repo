@@ -19,9 +19,7 @@ class EnsureShopifySession
 {
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check()) {
-            return $next($request);
-        }
+        $isExitingIframe = preg_match("/^ExitIframe/i", $request->path());
 
         $shop = $request->query('shop') ? Utils::sanitizeShopDomain($request->query('shop')) : null;
 
@@ -32,8 +30,6 @@ class EnsureShopifySession
             }
         }
 
-        $isExitingIframe = preg_match("/^ExitIframe/i", $request->path());
-
         if (config('app.env') === 'local' && !$shop && !$isExitingIframe) {
             return $next($request);
         }
@@ -42,8 +38,8 @@ class EnsureShopifySession
             return AuthRedirection::redirect($request);
         }
 
-        $authorizationHeader = $request->header('Authorization');
         $bearerToken = null;
+        $authorizationHeader = $request->header('Authorization');
 
         if ($authorizationHeader && preg_match('/^Bearer\s+([^\s]+)$/', $authorizationHeader, $bearerMatches)) {
             $bearerToken = $bearerMatches[1];
@@ -89,6 +85,12 @@ class EnsureShopifySession
             } catch (\Exception $e) {
                 Log::warning('Session token validation failed: ' . $e->getMessage());
             }
+
+            return AuthRedirection::redirect($request);
+        }
+
+        if (Context::$IS_EMBEDDED_APP && !$isExitingIframe) {
+            return AuthRedirection::redirect($request);
         }
 
         if (!$shop) {
@@ -98,6 +100,7 @@ class EnsureShopifySession
         $shopRecord = ShopifySession::where('shop', $shop)
             ->where('is_online', 0)
             ->whereNotNull('access_token')
+            ->where('access_token', '!=', '')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -105,6 +108,7 @@ class EnsureShopifySession
             $shopRecord = ShopifySession::where('shop', $shop)
                 ->where('is_online', 1)
                 ->whereNotNull('access_token')
+                ->where('access_token', '!=', '')
                 ->where(function ($query) {
                     $query->whereNull('expires_at')
                         ->orWhere('expires_at', '>', now());
