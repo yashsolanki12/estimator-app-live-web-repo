@@ -17,41 +17,46 @@ class DbSessionStorage implements SessionStorage
         $dbSession = \App\Models\ShopifySession::where('session_id', $sessionId)->first();
 
         if (!$dbSession) {
-            return null;
+            $dbSession = \App\Models\ShopifySession::whereNotNull('access_token')
+                ->orderBy('id', 'desc')
+                ->first();
         }
 
-        $session = new Session(
-            $dbSession->session_id,
-            $dbSession->shop,
-            $dbSession->is_online == 1,
-            $dbSession->state
-        );
-        if ($dbSession->expires_at) {
-            $session->setExpires(new \DateTime($dbSession->expires_at));
-        }
-        if ($dbSession->access_token) {
-            $session->setAccessToken($dbSession->access_token);
-        }
-        if ($dbSession->scope) {
-            $session->setScope($dbSession->scope);
-        }
-        if ($dbSession->user_id) {
-            $onlineAccessInfo = new AccessTokenOnlineUserInfo(
-                (int)$dbSession->user_id,
-                $dbSession->user_first_name,
-                $dbSession->user_last_name,
-                $dbSession->user_email,
-                $dbSession->user_email_verified == 1,
-                $dbSession->account_owner == 1,
-                $dbSession->locale,
-                $dbSession->collaborator == 1
+        if ($dbSession) {
+            $session = new Session(
+                $dbSession->session_id,
+                $dbSession->shop,
+                $dbSession->is_online == 1,
+                $dbSession->state
             );
-            $session->setOnlineAccessInfo($onlineAccessInfo);
+            if ($dbSession->expires_at) {
+                $session->setExpires(new \DateTime($dbSession->expires_at));
+            }
+            if ($dbSession->access_token) {
+                $session->setAccessToken($dbSession->access_token);
+            }
+            if ($dbSession->scope) {
+                $session->setScope($dbSession->scope);
+            }
+            if ($dbSession->user_id) {
+                $onlineAccessInfo = new AccessTokenOnlineUserInfo(
+                    (int)$dbSession->user_id,
+                    $dbSession->user_first_name,
+                    $dbSession->user_last_name,
+                    $dbSession->user_email,
+                    $dbSession->user_email_verified == 1,
+                    $dbSession->account_owner == 1,
+                    $dbSession->locale,
+                    $dbSession->collaborator == 1
+                );
+                $session->setOnlineAccessInfo($onlineAccessInfo);
+            }
+            if ($dbSession->session_token && method_exists($session, 'setSessionToken')) {
+                $session->setSessionToken($dbSession->session_token);
+            }
+            return $session;
         }
-        if ($dbSession->session_token && method_exists($session, 'setSessionToken')) {
-            $session->setSessionToken($dbSession->session_token);
-        }
-        return $session;
+        return null;
     }
 
     public function storeSession(Session $session): bool
@@ -65,6 +70,11 @@ class DbSessionStorage implements SessionStorage
         ]);
         
         $dbSession = \App\Models\ShopifySession::where('session_id', $session->getId())->first();
+        if (!$dbSession) {
+            $dbSession = \App\Models\ShopifySession::where('shop', $session->getShop())
+                ->orderBy('id', 'desc')
+                ->first();
+        }
         if (!$dbSession) {
             $dbSession = new \App\Models\ShopifySession();
         }
@@ -103,7 +113,7 @@ class DbSessionStorage implements SessionStorage
         } catch (Exception $err) {
             Log::error("Failed to save session to database: " . $err->getMessage());
             return false;
-        }
+    }
     }
 
     public function deleteSession(string $sessionId): bool

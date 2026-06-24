@@ -50,15 +50,35 @@
     @yield('scripts')
     <script>
         if (window.jQuery) {
-            window.jQuery.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+            var originalAjax = window.jQuery.ajax;
+            window.jQuery.ajax = async function() {
+                var options = arguments[0] || {};
+                if (typeof options === 'string') {
+                    options = arguments[1] || {};
+                    options.url = arguments[0];
+                }
+
+                // 1. Keep the shop parameter for backend compatibility
                 var shopOrigin = "{{ Auth::check() ? Auth::user()->name : request()->query('shop') }}";
                 if (shopOrigin && options.url.indexOf('shop=') === -1) {
                     var separator = options.url.indexOf('?') !== -1 ? '&' : '?';
                     options.url = options.url + separator + 'shop=' + encodeURIComponent(shopOrigin);
                 }
-            });
+
+                // 2. Fetch and add Session Token to pass Shopify's Embedded App Check
+                try {
+                    if (window.shopify && window.shopify.idToken) {
+                        var token = await window.shopify.idToken();
+                        options.headers = options.headers || {};
+                        options.headers['Authorization'] = 'Bearer ' + token;
+                    }
+                } catch (error) {
+                    console.error("Error fetching Shopify session token", error);
+                }
+
+                return originalAjax.apply(this, [options]);
+            };
         }
-        
     </script>
     
 </body>

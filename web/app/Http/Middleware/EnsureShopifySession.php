@@ -8,170 +8,82 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Shopify\Auth\AccessTokenOnlineUserInfo;
 use Shopify\Auth\OAuth;
-use Shopify\Auth\Session;
 use Shopify\Context;
 use Shopify\Utils;
 
 class EnsureShopifySession
 {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
     public function handle(Request $request, Closure $next)
     {
-        $isExitingIframe = preg_match("/^ExitIframe/i", $request->path());
+        // First, check if user is already authenticated - if so, allow through
+        if (Auth::check()) {
+            return $next($request);
+        }
 
+        // Get shop from 'shop' query param, or decode from 'host' (base64 encoded)
         $shop = $request->query('shop') ? Utils::sanitizeShopDomain($request->query('shop')) : null;
 
+        // Try to decode shop from the 'host' param (Shopify passes it as base64)
         if (!$shop && $request->query('host')) {
             $decoded = base64_decode($request->query('host'));
+            // host is like "admin.shopify.com/store/my-store" — extract shop from it
             if (preg_match('/\/store\/([^\/]+)/', $decoded, $matches)) {
                 $shop = $matches[1] . '.myshopify.com';
             }
         }
 
+        $isExitingIframe = preg_match("/^ExitIframe/i", $request->path());
+
+        // In local environment, allow access without shop parameter
         if (config('app.env') === 'local' && !$shop && !$isExitingIframe) {
             return $next($request);
         }
 
+        // If no shop parameter and not exiting iframe, we need to redirect
         if (!$shop && !$isExitingIframe) {
             return AuthRedirection::redirect($request);
         }
 
-        $bearerToken = null;
-        $authorizationHeader = $request->header('Authorization');
-
-        if ($authorizationHeader && preg_match('/^Bearer\s+([^\s]+)$/', $authorizationHeader, $bearerMatches)) {
-            $bearerToken = $bearerMatches[1];
-        } elseif ($request->query('id_token')) {
-            $bearerToken = $request->query('id_token');
-        }
-
-        if ($bearerToken && Context::$IS_EMBEDDED_APP) {
-            try {
-                $authHeaders = ['Authorization' => 'Bearer ' . $bearerToken];
-                $session = Utils::loadCurrentSession(
-                    $authHeaders,
-                    $request->cookies->all(),
-                    true
-                );
-
-                if ($session && $session->getAccessToken()) {
-                    if (Context::$SESSION_STORAGE) {
-                        Context::$SESSION_STORAGE->storeSession($session);
-                    }
-
-                    $dbSession = ShopifySession::where('session_id', $session->getId())->first();
-                    if ($dbSession && !$dbSession->session_token) {
-                        $dbSession->session_token = $bearerToken;
-                        $dbSession->save();
-                    } elseif (!$dbSession) {
-                        Log::warning('Session not found for session_token save', ['session_id' => $session->getId()]);
-                    }
-
-                    $request->attributes->set('shopifySession', $session);
-
-                    $user = User::firstOrCreate(
-                        ['name' => $session->getShop()],
-                        [
-                            'email' => 'shop@' . $session->getShop(),
-                            'password' => bcrypt(uniqid()),
-                        ]
-                    );
-                    Auth::login($user);
-
-                    return $next($request);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Session token validation failed: ' . $e->getMessage());
-            }
-
-            return AuthRedirection::redirect($request);
-        }
-
-        if (Context::$IS_EMBEDDED_APP && !$isExitingIframe) {
-            return AuthRedirection::redirect($request);
-        }
-
-        if (!$shop) {
-            return AuthRedirection::redirect($request);
-        }
-
-        $shopRecord = ShopifySession::where('shop', $shop)
-            ->where('is_online', 0)
-            ->whereNotNull('access_token')
-            ->where('access_token', '!=', '')
-            ->orderBy('id', 'desc')
-            ->first();
-
-        if (!$shopRecord) {
-            $shopRecord = ShopifySession::where('shop', $shop)
-                ->where('is_online', 1)
-                ->whereNotNull('access_token')
-                ->where('access_token', '!=', '')
-                ->where(function ($query) {
-                    $query->whereNull('expires_at')
-                        ->orWhere('expires_at', '>', now());
-                })
-                ->orderBy('id', 'desc')
-                ->first();
-        }
+        // Check if shop has a valid access token stored in DB
+        $shopRecord = $shop ? ShopifySession::where('shop', $shop)->whereNotNull('access_token')->first() : null;
 
         if (!$shopRecord && !$isExitingIframe) {
+            // Shop not installed or token was cleared - start OAuth again
             Auth::logout();
             return AuthRedirection::redirect($request);
         }
 
         if ($shopRecord) {
-            $session = new Session(
-                $shopRecord->session_id,
-                $shopRecord->shop,
-                (bool)$shopRecord->is_online,
-                $shopRecord->state
-            );
-
-            if ($shopRecord->expires_at) {
-                $session->setExpires(new \DateTime($shopRecord->expires_at));
-            }
-            if ($shopRecord->access_token) {
-                $session->setAccessToken($shopRecord->access_token);
-            }
-            if ($shopRecord->scope) {
-                $session->setScope($shopRecord->scope);
-            }
-            if ($shopRecord->user_id) {
-                $onlineAccessInfo = new AccessTokenOnlineUserInfo(
-                    (int)$shopRecord->user_id,
-                    $shopRecord->user_first_name,
-                    $shopRecord->user_last_name,
-                    $shopRecord->user_email,
-                    (bool)$shopRecord->user_email_verified,
-                    (bool)$shopRecord->account_owner,
-                    $shopRecord->locale,
-                    (bool)$shopRecord->collaborator
-                );
-                $session->setOnlineAccessInfo($onlineAccessInfo);
-            }
-
+            // Try to load active session from cookie first
             $sessionId = $request->cookie(OAuth::SESSION_ID_COOKIE_NAME);
+            $sessionLoaded = false;
+
             if ($sessionId && Context::$SESSION_STORAGE) {
-                $cookieSession = Context::$SESSION_STORAGE->loadSession($sessionId);
-                if ($cookieSession && $cookieSession->getAccessToken()) {
-                    $session = $cookieSession;
+                $session = Context::$SESSION_STORAGE->loadSession($sessionId);
+                if ($session) {
+                    $request->attributes->set('shopifySession', $session);
+                    $sessionLoaded = true;
                 }
             }
-
-            $request->attributes->set('shopifySession', $session);
-
+            // Keep Laravel auth aligned with the actual Shopify session state.
             $user = User::firstOrCreate(
-                ['name' => $shopRecord->shop],
+                ['name' => $shop],
                 [
-                    'email' => 'shop@' . $shopRecord->shop,
+                    'email' => "shop@$shop",
                     'password' => bcrypt(uniqid()),
                 ]
             );
             Auth::login($user);
 
+           
             return $next($request);
         }
 
