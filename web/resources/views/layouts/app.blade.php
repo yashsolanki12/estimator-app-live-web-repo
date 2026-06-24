@@ -7,8 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Shopify App') }}</title>
 
-   <meta name="shopify-api-key" content="{{ config('services.shopify.api_key') }}" />
-   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+
    <!-- App Bridge v3 (unpkg) for legacy TitleBar / Redirect actions
        Use the below unpkg script for timer blade file calendar not shown and for distribution check comment that both script temporary then uncomment 
         again after distribution point checked.      
@@ -18,7 +17,8 @@
 
    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
    <script src="https://unpkg.com/@shopify/app-bridge-utils@3"></script>
-
+   <meta name="shopify-api-key" content="{{ config('services.shopify.api_key') }}" />
+   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     @yield('styles')
 </head>
 
@@ -38,62 +38,14 @@
             $redirectUri = isset($_GET['redirectUri']) ? urldecode($_GET['redirectUri']) : '';
         ?>
     </div>
-
-    <script>
+   <script>
         document.addEventListener('DOMContentLoaded', function () {
             var redirectUri = "<?= htmlspecialchars($redirectUri, ENT_QUOTES, 'UTF-8') ?>";
-
+            
             if (redirectUri) {
                 window.open(redirectUri, '_top');
             }
         });
-
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-
-        const host = getQueryParam('host');
-        const shop = getQueryParam('shop');
-
-        if (host && window.top === window.self) {
-            const redirectUri = new URL(window.location.href);
-            redirectUri.searchParams.set('embedded', '1');
-            window.location.href = redirectUri.toString();
-        }
-
-        if (host && window.Shopify && window.Shopify.AppBridge) {
-            const appBridgeConfig = {
-                apiKey: "{{ config('services.shopify.api_key') }}",
-                host: host,
-                forceRedirect: true,
-            };
-
-            const AppBridge = window.Shopify.AppBridge;
-            const app = AppBridge.create(appBridgeConfig);
-            const actions = AppBridge.actions;
-            const Redirect = actions.Redirect;
-
-            document.querySelectorAll('a[href]').forEach(function(link) {
-                const href = link.getAttribute('href');
-                if (href && !href.startsWith('http') && !href.startsWith('//')) {
-                    link.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        Redirect.create(app, { path: href }).dispatch();
-                    });
-                }
-            });
-
-            document.querySelectorAll('form[action]').forEach(function(form) {
-                const action = form.getAttribute('action');
-                if (action && !action.startsWith('http') && !action.startsWith('//')) {
-                    form.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        Redirect.create(app, { path: action, method: 'POST' }).dispatch();
-                    });
-                }
-            });
-        }
     </script>
     @yield('scripts')
     <script>
@@ -108,6 +60,7 @@
         }
         
     </script>
+    
 </body>
 
 </html>
